@@ -1,0 +1,147 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-update-product-pricing
+      author: online-store
+      changes:
+        - renameColumn:
+            tableName: product
+            oldColumnName: base_price
+            newColumnName: net_price
+            columnDataType: NUMERIC(12,2)
+
+        - addColumn:
+            tableName: product
+            columns:
+              - column:
+                  name: gross_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: tax_rate
+                  type: NUMERIC(5,2)
+                  constraints:
+                    nullable: false
+
+        - sql:
+            sql: >
+              ALTER TABLE product
+              ADD CONSTRAINT chk_product_net_price
+              CHECK (net_price >= 0);
+
+        - sql:
+            sql: >
+              ALTER TABLE product
+              ADD CONSTRAINT chk_product_gross_price
+              CHECK (gross_price >= 0);
+
+        - sql:
+            sql: >
+              ALTER TABLE product
+              ADD CONSTRAINT chk_product_tax_rate
+              CHECK (tax_rate >= 0 AND tax_rate <= 100);
+
+        - sql:
+            sql: >
+              ALTER TABLE product
+              ADD CONSTRAINT chk_product_type
+              CHECK (type IN ('COMPUTER', 'SMARTPHONE', 'ELECTRONICS'));
+
+  - changeSet:
+      id: 005-update-product-option-group
+      author: online-store
+      changes:
+        - addColumn:
+            tableName: product_option_group
+            columns:
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+              - column:
+                  name: min_selections
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: max_selections
+                  type: INTEGER
+
+        - sql:
+            sql: >
+              ALTER TABLE product_option_group
+              ADD CONSTRAINT chk_option_group_selection_type
+              CHECK (selection_type IN ('SINGLE', 'MULTIPLE'));
+
+        - sql:
+            sql: >
+              ALTER TABLE product_option_group
+              ADD CONSTRAINT chk_option_group_min_max
+              CHECK (
+                min_selections >= 0
+                AND (
+                  max_selections IS NULL
+                  OR max_selections >= min_selections
+                )
+              );
+
+        - sql:
+            sql: >
+              ALTER TABLE product_option_group
+              ADD CONSTRAINT chk_option_group_required
+              CHECK (required = false OR min_selections >= 1);
+
+        - sql:
+            sql: >
+              ALTER TABLE product_option_group
+              ADD CONSTRAINT chk_option_group_single
+              CHECK (
+                selection_type <> 'SINGLE'
+                OR (
+                  min_selections <= 1
+                  AND (
+                    max_selections IS NULL
+                    OR max_selections <= 1
+                  )
+                )
+              );
+
+  - changeSet:
+      id: 006-update-product-option
+      author: online-store
+      changes:
+        - dropColumn:
+            tableName: product_option
+            columnName: additional_price
+
+        - dropNotNullConstraint:
+            tableName: product_option
+            columnName: value
+            columnDataType: VARCHAR(150)
+
+        - addColumn:
+            tableName: product_option
+            columns:
+              - column:
+                  name: option_product_id
+                  type: BIGINT
+
+        - addForeignKeyConstraint:
+            baseTableName: product_option
+            baseColumnNames: option_product_id
+            referencedTableName: product
+            referencedColumnNames: id
+            constraintName: fk_product_option_product
+
+        - sql:
+            sql: >
+              ALTER TABLE product_option
+              ADD CONSTRAINT chk_product_option_target
+              CHECK (
+                (value IS NOT NULL AND option_product_id IS NULL)
+                OR
+                (value IS NULL AND option_product_id IS NOT NULL)
+              );
