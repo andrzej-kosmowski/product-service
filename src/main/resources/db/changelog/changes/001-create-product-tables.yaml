@@ -1,0 +1,211 @@
+
+databaseChangeLog:
+  # 1. PRODUCT
+  - changeSet:
+      id: 001-create-product
+      author: online-store
+      changes:
+        - createTable:
+            tableName: product
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_product
+                    nullable: false
+
+              - column:
+                  name: name
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: description
+                  type: TEXT
+
+              - column:
+                  name: base_price
+                  type: NUMERIC(12,2)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: type
+                  type: VARCHAR(30)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  constraints:
+                    nullable: false
+
+        - createIndex:
+            tableName: product
+            indexName: idx_product_active
+            columns:
+              - column:
+                  name: active
+
+  # 2. PRODUCT_OPTION_GROUP
+  - changeSet:
+      id: 002-create-product-option-group
+      author: online-store
+      changes:
+        - createTable:
+            tableName: product_option_group
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_product_option_group
+                    nullable: false
+
+              - column:
+                  name: product_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: selection_type
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: required
+                  type: BOOLEAN
+                  defaultValueBoolean: false
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: product_option_group
+            baseColumnNames: product_id
+            constraintName: fk_option_group_product
+            referencedTableName: product
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addUniqueConstraint:
+            tableName: product_option_group
+            columnNames: product_id, code
+            constraintName: uk_option_group_product_code
+
+        - createIndex:
+            tableName: product_option_group
+            indexName: idx_option_group_product_id
+            columns:
+              - column:
+                  name: product_id
+
+  # 3. PRODUCT_OPTION
+  - changeSet:
+      id: 003-create-product-option
+      author: online-store
+      changes:
+        - createTable:
+            tableName: product_option
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_product_option
+                    nullable: false
+
+              - column:
+                  name: group_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: name
+                  type: VARCHAR(100)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: code
+                  type: VARCHAR(50)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: value
+                  type: VARCHAR(150)
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: additional_price
+                  type: NUMERIC(12,2)
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+
+              - column:
+                  name: active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
+
+        - addForeignKeyConstraint:
+            baseTableName: product_option
+            baseColumnNames: group_id
+            constraintName: fk_option_group
+            referencedTableName: product_option_group
+            referencedColumnNames: id
+            onDelete: CASCADE
+
+        - addUniqueConstraint:
+            tableName: product_option
+            columnNames: group_id, code
+            constraintName: uk_option_group_code
+
+        - createIndex:
+            tableName: product_option
+            indexName: idx_product_option_group_id
+            columns:
+              - column:
+                  name: group_id
