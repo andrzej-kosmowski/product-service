@@ -19,7 +19,7 @@ public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
     private String description;
     @Column(name = "net_price", nullable = false)
@@ -29,6 +29,7 @@ public class Product {
     @Column(name = "tax_rate", nullable = false)
     private BigDecimal taxRate;
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private ProductType type;
     @Column(nullable = false)
     private Boolean active;
