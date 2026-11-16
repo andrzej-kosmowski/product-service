@@ -17,9 +17,9 @@ public class ProductOptionGroup {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
-    @Column(nullable = false)
+    @Column(nullable = false, length = 50)
     private String code;
     @Enumerated(EnumType.STRING)
     @Column(name = "selection_type", nullable = false)
@@ -28,7 +28,7 @@ public class ProductOptionGroup {
     private Boolean required = false;
     @Column(name = "min_selections", nullable = false)
     private Integer minSelections = 0;
-    @Column(name = "max_selections", nullable = false)
+    @Column(name = "max_selections")
     private Integer maxSelections;
     @Column(nullable = false)
     private Boolean active;
