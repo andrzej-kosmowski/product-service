@@ -5,9 +5,6 @@ import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.model.Product;
 import org.mapstruct.*;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-
 @Mapper(componentModel = "spring")
 public interface ProductMapper {
     @Mapping(target = "id", ignore = true)
