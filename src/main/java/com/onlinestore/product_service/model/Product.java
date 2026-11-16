@@ -96,7 +96,7 @@ public class Product {
 
     private static BigDecimal calculateGrossPrice(BigDecimal netPrice, BigDecimal taxRate) {
         return netPrice
-                .multiply(BigDecimal.ONE.add(taxRate.divide(BigDecimal.valueOf(100))))
+                .multiply(BigDecimal.ONE.add(taxRate.divide(BigDecimal.valueOf(100), 4, RoundingMode.HALF_UP)))
                 .setScale(2, RoundingMode.HALF_UP);
     }
 }
