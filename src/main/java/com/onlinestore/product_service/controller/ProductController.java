@@ -3,7 +3,6 @@ package com.onlinestore.product_service.controller;
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
 import com.onlinestore.product_service.dto.ProductDto;
-import com.onlinestore.product_service.model.Product;
 import com.onlinestore.product_service.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
