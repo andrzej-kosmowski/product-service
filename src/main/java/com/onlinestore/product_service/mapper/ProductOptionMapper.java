@@ -5,7 +5,6 @@ import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.model.Product;
 import com.onlinestore.product_service.model.ProductOption;
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface ProductOptionMapper {
