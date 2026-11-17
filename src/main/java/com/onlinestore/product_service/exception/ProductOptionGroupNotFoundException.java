@@ -1,7 +1,9 @@
 package com.onlinestore.product_service.exception;
 
-public class ProductOptionGroupNotFoundException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class ProductOptionGroupNotFoundException extends ProductServiceException {
     public ProductOptionGroupNotFoundException(Long id) {
-        super("Product option group with id " + id + " not found");
+        super("Product option group with id " + id + " not found", HttpStatus.NOT_FOUND);
     }
 }
