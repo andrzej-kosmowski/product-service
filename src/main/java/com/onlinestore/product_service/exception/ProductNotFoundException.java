@@ -1,7 +1,9 @@
 package com.onlinestore.product_service.exception;
 
-public class ProductNotFoundException extends RuntimeException {
+import org.springframework.http.HttpStatus;
+
+public class ProductNotFoundException extends ProductServiceException {
     public ProductNotFoundException(Long id) {
-        super("Product with id " + id + " not found");
+        super("Product with id " + id + " not found", HttpStatus.NOT_FOUND);
     }
 }

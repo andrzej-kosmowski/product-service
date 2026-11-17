@@ -2,6 +2,7 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
@@ -243,6 +244,78 @@ class ProductServiceTest {
         verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
         verify(productRepository).findByIdAndActiveTrue(productId);
         verifyNoInteractions(productOptionRepository);
+    }
+
+    @Test
+    void getProductConfiguration_ProductHasGroupsAndOptions_ConfigurationReturned() {
+        // given
+        Long productId = 1L;
+        Long groupId = 10L;
+        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
+        ProductOption option = createOption(100L, group, "16 GB", "16GB", "16 GB");
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId))
+                .thenReturn(List.of(group));
+        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+                .thenReturn(List.of(option));
+        // when
+        ProductConfigurationDto result =
+                productService.getProductConfiguration(productId);
+        // then
+        assertAll(
+                () -> assertEquals(productId, result.productId()),
+                () -> assertEquals(1, result.groups().size()),
+                () -> assertEquals(groupId, result.groups().getFirst().id()),
+                () -> assertEquals("Memory", result.groups().getFirst().name()),
+                () -> assertEquals(1, result.groups().getFirst().options().size()),
+                () -> assertEquals(
+                        "16 GB",
+                        result.groups().getFirst().options().getFirst().value()
+                )
+        );
+
+        verify(productRepository).findByIdAndActiveTrue(productId);
+        verify(productOptionGroupRepository)
+                .findAllByProductIdAndActiveTrue(productId);
+        verify(productOptionRepository)
+                .findAllByGroupIdAndActiveTrue(groupId);
+    }
+
+    @Test
+    void getProductConfiguration_ProductHasNoGroups_EmptyConfigurationReturned() {
+        // given
+        Long productId = 1L;
+        Product product = createProduct(productId, "Computer", "Gaming computer", ProductType.COMPUTER);
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId))
+                .thenReturn(List.of());
+        // when
+        ProductConfigurationDto result = productService.getProductConfiguration(productId);
+        // then
+        assertEquals(productId, result.productId());
+        assertTrue(result.groups().isEmpty());
+        verify(productRepository).findByIdAndActiveTrue(productId);
+        verify(productOptionGroupRepository).findAllByProductIdAndActiveTrue(productId);
+        verifyNoInteractions(productOptionRepository);
+    }
+
+    @Test
+    void getProductConfiguration_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
+        // given
+        Long productId = 1L;
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.empty());
+        // when & then
+        assertThrows(
+                ProductNotFoundException.class,
+                () -> productService.getProductConfiguration(productId)
+        );
+        verify(productRepository).findByIdAndActiveTrue(productId);
+        verifyNoInteractions(productOptionGroupRepository, productOptionRepository);
     }
 
     @Test

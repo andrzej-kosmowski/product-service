@@ -2,6 +2,7 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
@@ -57,6 +58,23 @@ public class ProductService {
                 .stream()
                 .map(productOptionGroupMapper::toDto)
                 .toList();
+    }
+
+    public ProductConfigurationDto getProductConfiguration(Long productId) {
+        findActiveProductOrThrow(productId);
+        List<ProductOptionGroupDto> groups = productOptionGroupRepository
+                .findAllByProductIdAndActiveTrue(productId)
+                .stream()
+                .map(group -> {
+                    List<ProductOptionDto> options = productOptionRepository
+                            .findAllByGroupIdAndActiveTrue(group.getId())
+                            .stream()
+                            .map(productOptionMapper::toDto)
+                            .toList();
+                    return productOptionGroupMapper.toDtoWithOptions(group, options);
+                })
+                .toList();
+        return new ProductConfigurationDto(productId, groups);
     }
 
     public List<ProductOptionDto> getActiveOptions(Long groupId) {
