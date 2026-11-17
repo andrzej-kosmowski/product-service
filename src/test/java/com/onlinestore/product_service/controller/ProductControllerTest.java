@@ -2,6 +2,7 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
@@ -28,30 +29,60 @@ class ProductControllerTest {
     }
 
     @Test
-    void getActiveProducts() {
+    void getActiveProducts_TypeNotSpecified_AllActiveProductsReturned() {
         // given
-        Pageable pageable = PageRequest.of(0, 10, Sort.by("name").ascending());
-        ProductDto product = new ProductDto(
-                1L,
-                "SKU-001",
-                "Gaming PC",
-                "Gaming computer",
-                new BigDecimal("5000.00"),
-                new BigDecimal("6150.00"),
-                new BigDecimal("23.00"),
-                ProductType.COMPUTER
-        );
-        Page<ProductDto> expectedPage = new PageImpl<>(List.of(product), pageable, 1);
-        when(productService.getActiveProducts(pageable)).thenReturn(expectedPage);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<ProductDto> productPage = Page.empty(pageable);
+        when(productService.getActiveProducts(pageable)).thenReturn(productPage);
         // when
-        Page<ProductDto> result = productController.getActiveProducts(pageable);
+        Page<ProductDto> result = productController.getActiveProducts(null, pageable);
         // then
-        assertAll(
-                () -> assertEquals(expectedPage, result),
-                () -> assertEquals(1, result.getTotalElements()),
-                () -> assertEquals("Gaming PC", result.getContent().getFirst().name())
-        );
+        assertEquals(productPage, result);
         verify(productService).getActiveProducts(pageable);
+        verify(productService, never()).getActiveProductsByType(any(), any());
+    }
+
+    @Test
+    void getActiveProducts_TypeSpecified_ProductsOfTypeReturned() {
+        // given
+        Pageable pageable = PageRequest.of(0, 10);
+        ProductType type = ProductType.COMPUTER;
+        Page<ProductDto> productPage = Page.empty(pageable);
+        when(productService.getActiveProductsByType(type, pageable))
+                .thenReturn(productPage);
+        // when
+        Page<ProductDto> result = productController.getActiveProducts(type, pageable);
+        // then
+        assertEquals(productPage, result);
+        verify(productService).getActiveProductsByType(type, pageable);
+        verify(productService, never()).getActiveProducts(any());
+    }
+
+    @Test
+    void getProductConfiguration_ProductExists_ConfigurationReturned() {
+        // given
+        Long productId = 1L;
+        ProductConfigurationDto configuration = new ProductConfigurationDto(productId, List.of());
+        when(productService.getProductConfiguration(productId)).thenReturn(configuration);
+        // when
+        ProductConfigurationDto result = productController.getProductConfiguration(productId);
+        // then
+        assertEquals(configuration, result);
+        verify(productService).getProductConfiguration(productId);
+    }
+
+    @Test
+    void getProductConfiguration_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
+        // given
+        Long productId = 1L;
+        when(productService.getProductConfiguration(productId))
+                .thenThrow(new ProductNotFoundException(productId));
+        // when & then
+        assertThrows(
+                ProductNotFoundException.class,
+                () -> productController.getProductConfiguration(productId)
+        );
+        verify(productService).getProductConfiguration(productId);
     }
 
     @Test

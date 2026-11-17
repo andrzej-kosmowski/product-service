@@ -5,6 +5,6 @@ public record ProductOptionDto(
         String name,
         String code,
         String value,
-        Long optionProductId
+        OptionProductDto optionProduct
 ) {
 }

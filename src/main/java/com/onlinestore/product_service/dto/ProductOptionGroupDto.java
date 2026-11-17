@@ -2,6 +2,8 @@ package com.onlinestore.product_service.dto;
 
 import com.onlinestore.product_service.model.SelectionType;
 
+import java.util.List;
+
 public record ProductOptionGroupDto(
         Long id,
         String name,
@@ -9,7 +11,9 @@ public record ProductOptionGroupDto(
         SelectionType selectionType,
         Boolean required,
         Integer minSelections,
-        Integer maxSelections
+        Integer maxSelections,
+        List<ProductOptionDto> options
+
 ) {
 
 }

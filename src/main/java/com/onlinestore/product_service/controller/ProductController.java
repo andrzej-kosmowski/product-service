@@ -2,7 +2,9 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
+import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.service.ProductService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -23,11 +25,21 @@ public class ProductController {
     private final ProductService productService;
 
     @GetMapping
-    @Operation(summary = "Get active products", description = "Returns a paginated list of active products")
-    @ApiResponse(responseCode = "200", description = "Products retrieved successfully")
-    public Page<ProductDto> getActiveProducts(Pageable pageable) {
-        log.info("Fetching active products. Page: {}, Size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        return productService.getActiveProducts(pageable);
+    @Operation(summary = "Get active products",
+            description = "Returns a paginated list of active products, optionally filtered by type")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Products retrieved successfully"),
+            @ApiResponse(responseCode = "400", description = "Invalid product type")
+    })
+    public Page<ProductDto> getActiveProducts(@RequestParam(required = false) ProductType type,
+                                              Pageable pageable) {
+        log.info(
+                "Fetching active products. Type: {}, Page: {}, Size: {}", type, pageable.getPageNumber(),
+                pageable.getPageSize());
+        if (type == null) {
+            return productService.getActiveProducts(pageable);
+        }
+        return productService.getActiveProductsByType(type, pageable);
     }
 
     @GetMapping("/{id}")
@@ -39,6 +51,18 @@ public class ProductController {
     public ProductDto getActiveProductById(@PathVariable Long id) {
         log.info("Fetching product by ID: {}", id);
         return productService.getActiveProductById(id);
+    }
+
+    @GetMapping("/{id}/configuration")
+    @Operation(summary = "Get product configuration",
+            description = "Returns active option groups and available options for an active product")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Product configuration retrieved successfully"),
+            @ApiResponse(responseCode = "404", description = "Product not found")
+    })
+    public ProductConfigurationDto getProductConfiguration(@PathVariable Long id) {
+        log.debug("Fetching configuration for product with ID: {}", id);
+        return productService.getProductConfiguration(id);
     }
 
     @PostMapping
