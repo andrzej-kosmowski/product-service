@@ -3,21 +3,22 @@ package com.onlinestore.product_service.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
+import com.onlinestore.product_service.exception.ProductServiceExceptionHandler;
 import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.service.ProductService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -28,9 +29,11 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@AutoConfigureMockMvc
+@WebMvcTest(
+        value = ProductController.class,
+        properties = "spring.liquibase.enabled=false"
+)
+@Import(ProductServiceExceptionHandler.class)
 public class ProductControllerMvcTest {
     @Autowired
     MockMvc mockMvc;
@@ -69,6 +72,81 @@ public class ProductControllerMvcTest {
                 .andExpect(jsonPath("$.totalElements").value(1))
                 .andExpect(jsonPath("$.totalPages").value(1));
         verify(productService).getActiveProducts(any(Pageable.class));
+    }
+
+    @Test
+    void getActiveProducts_TypeSpecified_ProductsOfTypeReturned() throws Exception {
+        // given
+        ProductDto product = new ProductDto(
+                1L,
+                "SKU-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("5000.00"),
+                new BigDecimal("6150.00"),
+                new BigDecimal("23.00"),
+                ProductType.COMPUTER
+        );
+        Page<ProductDto> productPage = new PageImpl<>(
+                List.of(product),
+                PageRequest.of(0, 10),
+                1
+        );
+        when(productService.getActiveProductsByType(eq(ProductType.COMPUTER), any(Pageable.class)))
+                .thenReturn(productPage);
+        // when & then
+        mockMvc.perform(get("/api/products")
+                        .param("type", "COMPUTER")
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content.length()").value(1))
+                .andExpect(jsonPath("$.content[0].type").value("COMPUTER"));
+        verify(productService).getActiveProductsByType(
+                eq(ProductType.COMPUTER),
+                any(Pageable.class)
+        );
+        verify(productService, never()).getActiveProducts(any());
+    }
+
+    @Test
+    void getActiveProducts_InvalidType_BadRequestReturned() throws Exception {
+        // when & then
+        mockMvc.perform(get("/api/products")
+                        .param("type", "TABLET"))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(productService);
+    }
+
+    @Test
+    void getProductConfiguration_ProductExists_ConfigurationReturned() throws Exception {
+        // given
+        Long productId = 1L;
+        ProductConfigurationDto configuration = new ProductConfigurationDto(
+                productId,
+                List.of()
+        );
+        when(productService.getProductConfiguration(productId)).thenReturn(configuration);
+        // when & then
+        mockMvc.perform(get("/api/products/{id}/configuration", productId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.productId").value(productId))
+                .andExpect(jsonPath("$.groups").isArray())
+                .andExpect(jsonPath("$.groups").isEmpty());
+        verify(productService).getProductConfiguration(productId);
+    }
+
+    @Test
+    void getProductConfiguration_ProductDoesNotExist_NotFoundReturned() throws Exception {
+        // given
+        Long productId = 1L;
+        when(productService.getProductConfiguration(productId))
+                .thenThrow(new ProductNotFoundException(productId));
+        // when & then
+        mockMvc.perform(get("/api/products/{id}/configuration", productId))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.status").value(404));
+        verify(productService).getProductConfiguration(productId);
     }
 
     @Test
