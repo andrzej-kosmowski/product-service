@@ -1,7 +1,7 @@
 
 package com.onlinestore.product_service.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.onlinestore.product_service.command.CreateProductOptionGroupCommand;
 import com.onlinestore.product_service.command.UpdateProductOptionGroupCommand;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import tools.jackson.databind.ObjectMapper;
 
 import java.util.List;
 
@@ -31,7 +32,8 @@ class ProductOptionGroupControllerMvcTest {
     @Autowired
     private MockMvc mockMvc;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockitoBean
     private ProductOptionGroupService productOptionGroupService;
@@ -92,6 +94,15 @@ class ProductOptionGroupControllerMvcTest {
                         .param("productId", productId.toString()))
                 .andExpect(status().isNotFound());
         verify(productOptionGroupService).getActiveOptionGroups(productId);
+    }
+
+    @Test
+    void getActiveOptionGroups_ProductIdMissing_BadRequestReturned() throws Exception {
+        mockMvc.perform(get("/api/option-groups"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Missing required parameter: productId"));
+
+        verifyNoInteractions(productOptionGroupService);
     }
 
     @Test
@@ -221,5 +232,24 @@ class ProductOptionGroupControllerMvcTest {
                         .content(objectMapper.writeValueAsString(command)))
                 .andExpect(status().isConflict());
         verify(productOptionGroupService).updateOptionGroup(groupId, command);
+    }
+
+    @Test
+    void createOptionGroup_ProductIdMissing_BadRequestReturned() throws Exception {
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Storage",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3
+        );
+        mockMvc.perform(post("/api/option-groups")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Missing required parameter: productId"));
+
+        verifyNoInteractions(productOptionGroupService);
     }
 }
