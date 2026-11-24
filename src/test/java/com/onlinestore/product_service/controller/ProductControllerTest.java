@@ -2,7 +2,6 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
-import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
