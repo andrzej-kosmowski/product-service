@@ -11,5 +11,17 @@ services:
     volumes:
       - product_postgres_data:/var/lib/postgresql/data
 
+  product-service:
+    build: .
+    container_name: product_service
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://product-db:5432/product_db
+      SPRING_DATASOURCE_USERNAME: product_user
+      SPRING_DATASOURCE_PASSWORD: product_password
+    depends_on:
+      - product-db
+
 volumes:
   product_postgres_data:
