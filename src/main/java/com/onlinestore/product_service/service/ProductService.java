@@ -12,6 +12,7 @@ import com.onlinestore.product_service.mapper.ProductMapper;
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.mapper.ProductOptionMapper;
 import com.onlinestore.product_service.model.Product;
+import com.onlinestore.product_service.model.ProductOption;
 import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
 import com.onlinestore.product_service.repository.ProductOptionRepository;
@@ -59,6 +60,7 @@ public class ProductService {
                     List<ProductOptionDto> options = productOptionRepository
                             .findAllByGroupIdAndActiveTrue(group.getId())
                             .stream()
+                            .filter(this::isAvailableOption)
                             .map(productOptionMapper::toDto)
                             .toList();
                     return productOptionGroupMapper.toDtoWithOptions(group, options);
@@ -116,4 +118,10 @@ public class ProductService {
         return productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(id));
     }
+
+    private boolean isAvailableOption(ProductOption option) {
+        Product optionProduct = option.getOptionProduct();
+        return optionProduct == null || Boolean.TRUE.equals(optionProduct.getActive());
+    }
+
 }

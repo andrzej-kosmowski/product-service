@@ -88,69 +88,6 @@ public class ProductOptionGroupServiceTest {
         verifyNoInteractions(productOptionGroupRepository);
     }
 
-//    @Test
-//    void getActiveOptions_GroupAndProductExist_ActiveOptionsReturned() {
-//        // given
-//        Long groupId = 1L;
-//        Long productId = 10L;
-//        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
-//        ProductOptionGroup group = createOptionGroup(
-//                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
-//        ProductOption option1 = createOption(100L, group, "16 GB", "16GB", "16 GB");
-//        ProductOption option2 = createOption(200L, group, "32 GB", "32GB", "32 GB");
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-//        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
-//        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)).thenReturn(List.of(option1, option2));
-//        // when
-//        List<ProductOptionDto> result = productOptionGroupService.getActiveOptions(groupId);
-//        // then
-//        assertAll(
-//                () -> assertEquals(2, result.size()),
-//                () -> assertEquals(100L, result.get(0).id()),
-//                () -> assertEquals("16 GB", result.get(0).name()),
-//                () -> assertEquals("16GB", result.get(0).code()),
-//                () -> assertEquals(200L, result.get(1).id()),
-//                () -> assertEquals("32 GB", result.get(1).name()),
-//                () -> assertEquals("32GB", result.get(1).code())
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verify(productRepository).findByIdAndActiveTrue(productId);
-//        verify(productOptionRepository).findAllByGroupIdAndActiveTrue(groupId);
-//    }
-//
-//    @Test
-//    void getActiveOptions_GroupDoesNotExist_ProductOptionGroupNotFoundExceptionThrown() {
-//        // given
-//        Long groupId = 1L;
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.empty());
-//        // when & then
-//        assertThrows(ProductOptionGroupNotFoundException.class,
-//                () -> productOptionGroupService.getActiveOptions(groupId)
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verifyNoInteractions(productRepository, productOptionRepository);
-//    }
-//
-//    @Test
-//    void getActiveOptions_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
-//        // given
-//        Long groupId = 1L;
-//        Long productId = 10L;
-//        Product product = new Product();
-//        product.setId(productId);
-//        ProductOptionGroup group = new ProductOptionGroup();
-//        group.setProduct(product);
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-//        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.empty());
-//        // when & then
-//        assertThrows(ProductNotFoundException.class,
-//                () -> productOptionGroupService.getActiveOptions(groupId)
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verify(productRepository).findByIdAndActiveTrue(productId);
-//        verifyNoInteractions(productOptionRepository);
-//    }
-
     @Test
     void createOptionGroup_ProductExistsAndCodeIsUnique_GroupCreated() {
         // given
@@ -517,6 +454,39 @@ public class ProductOptionGroupServiceTest {
                 () -> assertEquals(1, result.maxSelections())
         );
         verify(productOptionGroupRepository).existsByProductIdAndCodeAndIdNot(productId, "MEMORY", groupId);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithMinGreaterThanOne_ThrowsException() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE
+        );
+        group.setRequired(true);
+        group.setMinSelections(2);
+        group.setMaxSelections(null);
+        assertThrows(InvalidProductOptionGroupException.class,
+                group::validateConfiguration);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithMaxGreaterThanOne_ThrowsException() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setRequired(true);
+        group.setMinSelections(1);
+        group.setMaxSelections(2);
+        assertThrows(InvalidProductOptionGroupException.class,
+                group::validateConfiguration);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithOneSelection_IsValid() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setRequired(true);
+        group.setMinSelections(1);
+        group.setMaxSelections(1);
+        assertDoesNotThrow(group::validateConfiguration);
     }
 
     private Product createProduct(Long id, String name, String description, ProductType type) {

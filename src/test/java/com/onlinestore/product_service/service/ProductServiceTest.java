@@ -197,6 +197,38 @@ class ProductServiceTest {
     }
 
     @Test
+    void getProductConfiguration_InactiveOptionProduct_IsNotIncluded() {
+        Long productId = 1L;
+        Long groupId = 10L;
+        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Storage", "STORAGE", SelectionType.MULTIPLE);
+
+        ProductOption textOption = createOption(100L, group, "Default", "DEFAULT", "Default value");
+
+        Product inactiveOptionProduct = createProduct(2L, "SSD 512 GB", "SSD", ProductType.ELECTRONICS);
+        inactiveOptionProduct.setActive(false);
+        ProductOption inactiveProductOption = createOption(101L, group, "SSD 512 GB", "SSD_512", null);
+        inactiveProductOption.setOptionProduct(inactiveOptionProduct);
+
+        Product activeOptionProduct = createProduct(3L, "SSD 1 TB", "SSD", ProductType.ELECTRONICS);
+        activeOptionProduct.setActive(true);
+        ProductOption activeProductOption = createOption(102L, group, "SSD 1 TB", "SSD_1TB", null);
+        activeProductOption.setOptionProduct(activeOptionProduct);
+
+        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
+        when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId)).thenReturn(List.of(group));
+        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+                .thenReturn(List.of(textOption, inactiveProductOption, activeProductOption));
+
+        ProductConfigurationDto result = productService.getProductConfiguration(productId);
+
+        assertEquals(List.of(100L, 102L), result.groups().getFirst().options().stream()
+                .map(option -> option.id())
+                .toList());
+    }
+
+    @Test
     void getProductConfiguration_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
         // given
         Long productId = 1L;

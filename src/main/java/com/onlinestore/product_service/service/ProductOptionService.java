@@ -34,6 +34,7 @@ public class ProductOptionService {
         findActiveProductOrThrow(group.getProduct().getId());
         return productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
                 .stream()
+                .filter(this::isAvailableOption)
                 .map(productOptionMapper::toDto)
                 .toList();
     }
@@ -105,4 +106,10 @@ public class ProductOptionService {
         return productOptionRepository.findById(id)
                 .orElseThrow(() -> new ProductOptionNotFoundException(id));
     }
+
+    private boolean isAvailableOption(ProductOption option) {
+        Product optionProduct = option.getOptionProduct();
+        return optionProduct == null || Boolean.TRUE.equals(optionProduct.getActive());
+    }
+
 }
