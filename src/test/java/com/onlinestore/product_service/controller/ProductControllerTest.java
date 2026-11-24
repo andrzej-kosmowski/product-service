@@ -2,6 +2,7 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
@@ -26,36 +27,6 @@ class ProductControllerTest {
     void setUp() {
         this.productService = mock(ProductService.class);
         this.productController = new ProductController(productService);
-    }
-
-    @Test
-    void getActiveProducts_TypeNotSpecified_AllActiveProductsReturned() {
-        // given
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<ProductDto> productPage = Page.empty(pageable);
-        when(productService.getActiveProducts(pageable)).thenReturn(productPage);
-        // when
-        Page<ProductDto> result = productController.getActiveProducts(null, pageable);
-        // then
-        assertEquals(productPage, result);
-        verify(productService).getActiveProducts(pageable);
-        verify(productService, never()).getActiveProductsByType(any(), any());
-    }
-
-    @Test
-    void getActiveProducts_TypeSpecified_ProductsOfTypeReturned() {
-        // given
-        Pageable pageable = PageRequest.of(0, 10);
-        ProductType type = ProductType.COMPUTER;
-        Page<ProductDto> productPage = Page.empty(pageable);
-        when(productService.getActiveProductsByType(type, pageable))
-                .thenReturn(productPage);
-        // when
-        Page<ProductDto> result = productController.getActiveProducts(type, pageable);
-        // then
-        assertEquals(productPage, result);
-        verify(productService).getActiveProductsByType(type, pageable);
-        verify(productService, never()).getActiveProducts(any());
     }
 
     @Test

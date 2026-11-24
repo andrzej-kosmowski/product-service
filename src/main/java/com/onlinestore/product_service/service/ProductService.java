@@ -2,10 +2,7 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
-import com.onlinestore.product_service.dto.ProductConfigurationDto;
-import com.onlinestore.product_service.dto.ProductDto;
-import com.onlinestore.product_service.dto.ProductOptionDto;
-import com.onlinestore.product_service.dto.ProductOptionGroupDto;
+import com.onlinestore.product_service.dto.*;
 import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
@@ -40,14 +37,16 @@ public class ProductService {
     private final ProductOptionGroupMapper productOptionGroupMapper;
     private final ProductOptionMapper productOptionMapper;
 
-    public Page<ProductDto> getActiveProducts(Pageable pageable) {
-        return productRepository.findAllByActiveTrue(pageable)
-                .map(productMapper::toDto);
+    public PageResponse<ProductDto> getActiveProducts(Pageable pageable) {
+        Page<Product> products = productRepository.findAllByActiveTrue(pageable);
+        Page<ProductDto> productDtos = products.map(productMapper::toDto);
+        return PageResponse.from(productDtos);
     }
 
-    public Page<ProductDto> getActiveProductsByType(ProductType type, Pageable pageable) {
-        return productRepository.findAllByTypeAndActiveTrue(type, pageable)
-                .map(productMapper::toDto);
+    public PageResponse<ProductDto> getActiveProductsByType(ProductType type, Pageable pageable) {
+        Page<Product> products = productRepository.findAllByTypeAndActiveTrue(type, pageable);
+        Page<ProductDto> productDtos = products.map(productMapper::toDto);
+        return PageResponse.from(productDtos);
     }
 
     public ProductDto getActiveProductById(Long id) {

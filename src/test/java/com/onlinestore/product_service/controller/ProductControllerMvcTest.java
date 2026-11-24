@@ -3,6 +3,7 @@ package com.onlinestore.product_service.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
@@ -60,7 +61,7 @@ public class ProductControllerMvcTest {
                 new BigDecimal("23.00"),
                 ProductType.COMPUTER
         );
-        Page<ProductDto> productPage = new PageImpl<>(List.of(product), PageRequest.of(0, 10), 1);
+        PageResponse<ProductDto> productPage = new PageResponse<>(List.of(product), 0, 10, 1 ,1);
         when(productService.getActiveProducts(any(Pageable.class)))
                 .thenReturn(productPage);
         // when & then
@@ -91,11 +92,7 @@ public class ProductControllerMvcTest {
                 new BigDecimal("23.00"),
                 ProductType.COMPUTER
         );
-        Page<ProductDto> productPage = new PageImpl<>(
-                List.of(product),
-                PageRequest.of(0, 10),
-                1
-        );
+        PageResponse<ProductDto> productPage = new PageResponse<>(List.of(product), 0, 10, 1 ,1);
         when(productService.getActiveProductsByType(eq(ProductType.COMPUTER), any(Pageable.class)))
                 .thenReturn(productPage);
         // when & then

@@ -2,6 +2,7 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.dto.ProductOptionDto;
@@ -80,12 +81,12 @@ class ProductServiceTest {
         when(productRepository.findAllByActiveTrue(pageable))
                 .thenReturn(products);
         // when
-        Page<ProductDto> result = productService.getActiveProducts(pageable);
+        PageResponse<ProductDto> result = productService.getActiveProducts(pageable);
         // then
         assertAll(
-            () -> assertEquals(2, result.getTotalElements()),
-            () -> assertEquals(dto1, result.getContent().get(0)),
-            () -> assertEquals(dto2, result.getContent().get(1))
+            () -> assertEquals(2, result.size()),
+            () -> assertEquals(dto1, result.content().get(0)),
+            () -> assertEquals(dto2, result.content().get(1))
         );
     }
 
@@ -99,14 +100,14 @@ class ProductServiceTest {
         Page<Product> products = new PageImpl<>(List.of(product1, product2));
         when(productRepository.findAllByTypeAndActiveTrue(type, pageable)).thenReturn(products);
         // when
-        Page<ProductDto> result = productService.getActiveProductsByType(type, pageable);
+        PageResponse<ProductDto> result = productService.getActiveProductsByType(type, pageable);
         // then
         assertAll(
-            () -> assertEquals(2, result.getTotalElements()),
-            () -> assertEquals(1L, result.getContent().get(0).id()),
-            () -> assertEquals("Laptop", result.getContent().get(0).name()),
-            () -> assertEquals(2L, result.getContent().get(1).id()),
-            () -> assertEquals("Desktop", result.getContent().get(1).name())
+            () -> assertEquals(2, result.size()),
+            () -> assertEquals(1L, result.content().get(0).id()),
+            () -> assertEquals("Laptop", result.content().get(0).name()),
+            () -> assertEquals(2L, result.content().get(1).id()),
+            () -> assertEquals("Desktop", result.content().get(1).name())
         );
         verify(productRepository).findAllByTypeAndActiveTrue(type, pageable);
     }
