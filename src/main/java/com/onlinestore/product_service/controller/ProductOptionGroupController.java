@@ -2,7 +2,6 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductOptionGroupCommand;
 import com.onlinestore.product_service.command.UpdateProductOptionGroupCommand;
-import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
 import com.onlinestore.product_service.service.ProductOptionGroupService;
 import io.swagger.v3.oas.annotations.Operation;

@@ -9,6 +9,7 @@ import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.exception.ProductServiceExceptionHandler;
 import com.onlinestore.product_service.model.ProductType;
+import com.onlinestore.product_service.service.ProductOptionGroupService;
 import com.onlinestore.product_service.service.ProductService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +31,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(
-        value = ProductController.class,
+        value = { ProductController.class, ProductOptionGroupController.class },
         properties = "spring.liquibase.enabled=false"
 )
 @Import(ProductServiceExceptionHandler.class)
@@ -42,6 +43,9 @@ public class ProductControllerMvcTest {
 
     @MockitoBean
     ProductService productService;
+
+    @MockitoBean
+    private ProductOptionGroupService productOptionGroupService;
 
     @Test
     void getActiveProducts_ProductsExist_ProductsReturned() throws Exception {

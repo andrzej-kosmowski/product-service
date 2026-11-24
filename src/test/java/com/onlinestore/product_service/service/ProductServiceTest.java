@@ -4,11 +4,8 @@ import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
-import com.onlinestore.product_service.dto.ProductOptionDto;
-import com.onlinestore.product_service.dto.ProductOptionGroupDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
-import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundException;
 import com.onlinestore.product_service.mapper.ProductMapper;
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.mapper.ProductOptionMapper;
@@ -140,110 +137,6 @@ class ProductServiceTest {
                 () -> productService.getActiveProductById(productId)
         );
         verify(productRepository).findByIdAndActiveTrue(productId);
-    }
-
-    @Test
-    void getActiveOptionGroups_ProductExists_ActiveGroupsReturned() {
-        // given
-        Long productId = 1L;
-        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
-        ProductOptionGroup group1 = createOptionGroup(
-                10L, product, "Memory", "MEMORY", SelectionType.SINGLE);
-        ProductOptionGroup group2 = createOptionGroup(
-                20L, product, "Storage", "STORAGE", SelectionType.MULTIPLE);
-        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
-        when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId))
-                .thenReturn(List.of(group1, group2));
-        // when
-        List<ProductOptionGroupDto> result = productService.getActiveOptionGroups(productId);
-        // then
-        assertAll(
-            () -> assertEquals(2, result.size()),
-            () -> assertEquals(10L, result.get(0).id()),
-            () -> assertEquals("Memory", result.get(0).name()),
-            () -> assertEquals("MEMORY", result.get(0).code()),
-            () -> assertEquals(20L, result.get(1).id()),
-            () -> assertEquals("Storage", result.get(1).name()),
-            () -> assertEquals("STORAGE", result.get(1).code())
-        );
-        verify(productRepository).findByIdAndActiveTrue(productId);
-        verify(productOptionGroupRepository).findAllByProductIdAndActiveTrue(productId);
-    }
-
-    @Test
-    void getActiveOptionGroups_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
-        // given
-        Long productId = 1L;
-        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.empty());
-        // when & then
-        assertThrows(ProductNotFoundException.class,
-                () -> productService.getActiveOptionGroups(productId)
-        );
-        verify(productRepository).findByIdAndActiveTrue(productId);
-        verifyNoInteractions(productOptionGroupRepository);
-    }
-
-    @Test
-    void getActiveOptions_GroupAndProductExist_ActiveOptionsReturned() {
-        // given
-        Long groupId = 1L;
-        Long productId = 10L;
-        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
-        ProductOptionGroup group = createOptionGroup(
-                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
-        ProductOption option1 = createOption(100L, group, "16 GB", "16GB", "16 GB");
-        ProductOption option2 = createOption(200L, group, "32 GB", "32GB", "32 GB");
-        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
-        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)).thenReturn(List.of(option1, option2));
-        // when
-        List<ProductOptionDto> result = productService.getActiveOptions(groupId);
-        // then
-        assertAll(
-            () -> assertEquals(2, result.size()),
-            () -> assertEquals(100L, result.get(0).id()),
-            () -> assertEquals("16 GB", result.get(0).name()),
-            () -> assertEquals("16GB", result.get(0).code()),
-            () -> assertEquals(200L, result.get(1).id()),
-            () -> assertEquals("32 GB", result.get(1).name()),
-            () -> assertEquals("32GB", result.get(1).code())
-        );
-        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-        verify(productRepository).findByIdAndActiveTrue(productId);
-        verify(productOptionRepository).findAllByGroupIdAndActiveTrue(groupId);
-    }
-
-    @Test
-    void getActiveOptions_GroupDoesNotExist_ProductOptionGroupNotFoundExceptionThrown() {
-        // given
-        Long groupId = 1L;
-        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.empty());
-        // when & then
-        assertThrows(ProductOptionGroupNotFoundException.class,
-                () -> productService.getActiveOptions(groupId)
-        );
-        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-        verifyNoInteractions(productRepository, productOptionRepository);
-    }
-
-    @Test
-    void getActiveOptions_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
-        // given
-        Long groupId = 1L;
-        Long productId = 10L;
-        Product product = new Product();
-        product.setId(productId);
-        ProductOptionGroup group = new ProductOptionGroup();
-        group.setProduct(product);
-        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.empty());
-        // when & then
-        assertThrows(ProductNotFoundException.class,
-                () -> productService.getActiveOptions(groupId)
-        );
-        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-        verify(productRepository).findByIdAndActiveTrue(productId);
-        verifyNoInteractions(productOptionRepository);
     }
 
     @Test
