@@ -2,17 +2,14 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductOptionGroupCommand;
 import com.onlinestore.product_service.command.UpdateProductOptionGroupCommand;
-import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.exception.ProductOptionGroupAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundException;
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
-import com.onlinestore.product_service.mapper.ProductOptionMapper;
 import com.onlinestore.product_service.model.Product;
 import com.onlinestore.product_service.model.ProductOptionGroup;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
-import com.onlinestore.product_service.repository.ProductOptionRepository;
 import com.onlinestore.product_service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
