@@ -4,10 +4,7 @@ package com.onlinestore.product_service.controller;
 import com.onlinestore.product_service.command.CreateProductOptionGroupCommand;
 import com.onlinestore.product_service.command.UpdateProductOptionGroupCommand;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
-import com.onlinestore.product_service.exception.ProductNotFoundException;
-import com.onlinestore.product_service.exception.ProductOptionGroupAlreadyExistsException;
-import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundException;
-import com.onlinestore.product_service.exception.ProductServiceExceptionHandler;
+import com.onlinestore.product_service.exception.*;
 import com.onlinestore.product_service.model.SelectionType;
 import com.onlinestore.product_service.service.ProductOptionGroupService;
 import org.junit.jupiter.api.Test;
@@ -232,6 +229,125 @@ class ProductOptionGroupControllerMvcTest {
                         .content(objectMapper.writeValueAsString(command)))
                 .andExpect(status().isConflict());
         verify(productOptionGroupService).updateOptionGroup(groupId, command);
+    }
+
+    @Test
+    void createOptionGroup_ValidCommand_CreatedReturned() throws Exception {
+        Long productId = 1L;
+        Long groupId = 10L;
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Storage",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3
+        );
+        ProductOptionGroupDto result = new ProductOptionGroupDto(
+                groupId,
+                "Storage",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3,
+                List.of()
+        );
+        when(productOptionGroupService.createProductOptionGroup(productId, command))
+                .thenReturn(result);
+        mockMvc.perform(post("/api/option-groups")
+                        .param("productId", productId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isCreated())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id").value(groupId))
+                .andExpect(jsonPath("$.name").value("Storage"))
+                .andExpect(jsonPath("$.code").value("STORAGE"));
+        verify(productOptionGroupService).createProductOptionGroup(productId, command);
+    }
+
+    @Test
+    void createOptionGroup_InvalidBody_BadRequestReturned() throws Exception {
+        long productId = 1L;
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3
+        );
+        mockMvc.perform(post("/api/option-groups")
+                        .param("productId", Long.toString(productId))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isBadRequest());
+        verifyNoInteractions(productOptionGroupService);
+    }
+
+    @Test
+    void createOptionGroup_ElectronicsProduct_BadRequestReturned() throws Exception {
+        Long productId = 1L;
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Color",
+                "COLOR",
+                SelectionType.SINGLE,
+                true,
+                1,
+                1
+        );
+        when(productOptionGroupService.createProductOptionGroup(productId, command))
+                .thenThrow(new InvalidProductOptionGroupException(
+                        "Products of type ELECTRONICS cannot have option groups"));
+        mockMvc.perform(post("/api/option-groups")
+                        .param("productId", productId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isBadRequest());
+        verify(productOptionGroupService).createProductOptionGroup(productId, command);
+    }
+
+    @Test
+    void createOptionGroup_ProductDoesNotExist_NotFoundReturned() throws Exception {
+        Long productId = 1L;
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Storage",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3
+        );
+        when(productOptionGroupService.createProductOptionGroup(productId, command))
+                .thenThrow(new ProductNotFoundException(productId));
+        mockMvc.perform(post("/api/option-groups")
+                        .param("productId", productId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isNotFound());
+        verify(productOptionGroupService).createProductOptionGroup(productId, command);
+    }
+
+    @Test
+    void createOptionGroup_CodeAlreadyExists_ConflictReturned() throws Exception {
+        Long productId = 1L;
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Storage",
+                "STORAGE",
+                SelectionType.MULTIPLE,
+                true,
+                1,
+                3
+        );
+        when(productOptionGroupService.createProductOptionGroup(productId, command))
+                .thenThrow(new ProductOptionGroupAlreadyExistsException(productId, command.code()));
+        mockMvc.perform(post("/api/option-groups")
+                        .param("productId", productId.toString())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(command)))
+                .andExpect(status().isConflict());
+        verify(productOptionGroupService).createProductOptionGroup(productId, command);
     }
 
     @Test
