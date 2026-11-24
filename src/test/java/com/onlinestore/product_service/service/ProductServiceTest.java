@@ -2,8 +2,11 @@ package com.onlinestore.product_service.service;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
+import com.onlinestore.product_service.dto.ProductOptionDto;
+import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.mapper.ProductMapper;
@@ -78,12 +81,12 @@ class ProductServiceTest {
         when(productRepository.findAllByActiveTrue(pageable))
                 .thenReturn(products);
         // when
-        Page<ProductDto> result = productService.getActiveProducts(pageable);
+        PageResponse<ProductDto> result = productService.getActiveProducts(pageable);
         // then
         assertAll(
-            () -> assertEquals(2, result.getTotalElements()),
-            () -> assertEquals(dto1, result.getContent().get(0)),
-            () -> assertEquals(dto2, result.getContent().get(1))
+            () -> assertEquals(2, result.size()),
+            () -> assertEquals(dto1, result.content().get(0)),
+            () -> assertEquals(dto2, result.content().get(1))
         );
     }
 
@@ -97,14 +100,14 @@ class ProductServiceTest {
         Page<Product> products = new PageImpl<>(List.of(product1, product2));
         when(productRepository.findAllByTypeAndActiveTrue(type, pageable)).thenReturn(products);
         // when
-        Page<ProductDto> result = productService.getActiveProductsByType(type, pageable);
+        PageResponse<ProductDto> result = productService.getActiveProductsByType(type, pageable);
         // then
         assertAll(
-            () -> assertEquals(2, result.getTotalElements()),
-            () -> assertEquals(1L, result.getContent().get(0).id()),
-            () -> assertEquals("Laptop", result.getContent().get(0).name()),
-            () -> assertEquals(2L, result.getContent().get(1).id()),
-            () -> assertEquals("Desktop", result.getContent().get(1).name())
+            () -> assertEquals(2, result.size()),
+            () -> assertEquals(1L, result.content().get(0).id()),
+            () -> assertEquals("Laptop", result.content().get(0).name()),
+            () -> assertEquals(2L, result.content().get(1).id()),
+            () -> assertEquals("Desktop", result.content().get(1).name())
         );
         verify(productRepository).findAllByTypeAndActiveTrue(type, pageable);
     }
@@ -152,7 +155,7 @@ class ProductServiceTest {
                 .thenReturn(Optional.of(product));
         when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId))
                 .thenReturn(List.of(group));
-        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+        when(productOptionRepository.findAllByGroupIdInAndActiveTrue(List.of(groupId)))
                 .thenReturn(List.of(option));
         // when
         ProductConfigurationDto result =
@@ -174,7 +177,7 @@ class ProductServiceTest {
         verify(productOptionGroupRepository)
                 .findAllByProductIdAndActiveTrue(productId);
         verify(productOptionRepository)
-                .findAllByGroupIdAndActiveTrue(groupId);
+                .findAllByGroupIdInAndActiveTrue(List.of(groupId));
     }
 
     @Test
@@ -194,6 +197,38 @@ class ProductServiceTest {
         verify(productRepository).findByIdAndActiveTrue(productId);
         verify(productOptionGroupRepository).findAllByProductIdAndActiveTrue(productId);
         verifyNoInteractions(productOptionRepository);
+    }
+
+    @Test
+    void getProductConfiguration_InactiveOptionProduct_IsNotIncluded() {
+        Long productId = 1L;
+        Long groupId = 10L;
+        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Storage", "STORAGE", SelectionType.MULTIPLE);
+
+        ProductOption textOption = createOption(100L, group, "Default", "DEFAULT", "Default value");
+
+        Product inactiveOptionProduct = createProduct(2L, "SSD 512 GB", "SSD", ProductType.ELECTRONICS);
+        inactiveOptionProduct.setActive(false);
+        ProductOption inactiveProductOption = createOption(101L, group, "SSD 512 GB", "SSD_512", null);
+        inactiveProductOption.setOptionProduct(inactiveOptionProduct);
+
+        Product activeOptionProduct = createProduct(3L, "SSD 1 TB", "SSD", ProductType.ELECTRONICS);
+        activeOptionProduct.setActive(true);
+        ProductOption activeProductOption = createOption(102L, group, "SSD 1 TB", "SSD_1TB", null);
+        activeProductOption.setOptionProduct(activeOptionProduct);
+
+        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
+        when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId)).thenReturn(List.of(group));
+        when(productOptionRepository.findAllByGroupIdInAndActiveTrue(List.of(groupId)))
+                .thenReturn(List.of(textOption, inactiveProductOption, activeProductOption));
+
+        ProductConfigurationDto result = productService.getProductConfiguration(productId);
+
+        assertEquals(List.of(100L, 102L), result.groups().getFirst().options().stream()
+                .map(ProductOptionDto::id)
+                .toList());
     }
 
     @Test
@@ -375,6 +410,69 @@ class ProductServiceTest {
         verify(productRepository).findByIdAndActiveTrue(productId);
         verify(productRepository).existsBySkuAndIdNot(command.sku(), productId);
         verify(productRepository, never()).save(Mockito.any(Product.class));
+    }
+
+    @Test
+    void updateProduct_ProductHasActiveOptionGroups_CannotChangeTypeToElectronics() {
+        Long productId = 1L;
+        Product product = Product.create(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.COMPUTER
+        );
+        product.setId(productId);
+        UpdateProductCommand command = new UpdateProductCommand(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.ELECTRONICS
+        );
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productRepository.existsBySkuAndIdNot(command.sku(), productId))
+                .thenReturn(false);
+        when(productOptionGroupRepository.existsByProductIdAndActiveTrue(productId))
+                .thenReturn(true);
+        assertThrows(InvalidProductOptionGroupException.class,
+                () -> productService.updateProduct(productId, command));
+        assertEquals(ProductType.COMPUTER, product.getType());
+        verify(productOptionGroupRepository).existsByProductIdAndActiveTrue(productId);
+    }
+
+    @Test
+    void updateProduct_ProductHasNoActiveOptionGroups_CanChangeTypeToElectronics() {
+        Long productId = 1L;
+        Product product = Product.create(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.COMPUTER
+        );
+        product.setId(productId);
+        UpdateProductCommand command = new UpdateProductCommand(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.ELECTRONICS
+        );
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productRepository.existsBySkuAndIdNot(command.sku(), productId))
+                .thenReturn(false);
+        when(productOptionGroupRepository.existsByProductIdAndActiveTrue(productId))
+                .thenReturn(false);
+        ProductDto result = productService.updateProduct(productId, command);
+        assertEquals(ProductType.ELECTRONICS, result.type());
+        assertEquals(ProductType.ELECTRONICS, product.getType());
     }
 
     @Test

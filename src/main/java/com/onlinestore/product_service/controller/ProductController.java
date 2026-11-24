@@ -2,6 +2,7 @@ package com.onlinestore.product_service.controller;
 
 import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
+import com.onlinestore.product_service.dto.PageResponse;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.model.ProductType;
@@ -12,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -31,8 +31,8 @@ public class ProductController {
             @ApiResponse(responseCode = "200", description = "Products retrieved successfully"),
             @ApiResponse(responseCode = "400", description = "Invalid product type")
     })
-    public Page<ProductDto> getActiveProducts(@RequestParam(required = false) ProductType type,
-                                              Pageable pageable) {
+    public PageResponse<ProductDto> getActiveProducts(@RequestParam(required = false) ProductType type,
+                                                      Pageable pageable) {
         log.info(
                 "Fetching active products. Type: {}, Page: {}, Size: {}", type, pageable.getPageNumber(),
                 pageable.getPageSize());

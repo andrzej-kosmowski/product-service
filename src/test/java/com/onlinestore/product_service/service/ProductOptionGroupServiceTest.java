@@ -10,6 +10,7 @@ import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundExcep
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.model.*;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
+import com.onlinestore.product_service.repository.ProductOptionRepository;
 import com.onlinestore.product_service.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,6 +29,7 @@ import static org.mockito.Mockito.when;
 public class ProductOptionGroupServiceTest {
     ProductRepository productRepository;
     ProductOptionGroupRepository productOptionGroupRepository;
+    ProductOptionRepository productOptionRepository;
     ProductOptionGroupMapper productOptionGroupMapper;
 
     ProductOptionGroupService productOptionGroupService;
@@ -36,11 +38,13 @@ public class ProductOptionGroupServiceTest {
     void setUp() {
         productRepository = mock(ProductRepository.class);
         productOptionGroupRepository = mock(ProductOptionGroupRepository.class);
+        productOptionRepository = mock(ProductOptionRepository.class);
         productOptionGroupMapper = Mappers.getMapper(ProductOptionGroupMapper.class);
 
         productOptionGroupService = new ProductOptionGroupService(
                 productRepository,
                 productOptionGroupRepository,
+                productOptionRepository,
                 productOptionGroupMapper
         );
     }
@@ -87,69 +91,6 @@ public class ProductOptionGroupServiceTest {
         verify(productRepository).findByIdAndActiveTrue(productId);
         verifyNoInteractions(productOptionGroupRepository);
     }
-
-//    @Test
-//    void getActiveOptions_GroupAndProductExist_ActiveOptionsReturned() {
-//        // given
-//        Long groupId = 1L;
-//        Long productId = 10L;
-//        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
-//        ProductOptionGroup group = createOptionGroup(
-//                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
-//        ProductOption option1 = createOption(100L, group, "16 GB", "16GB", "16 GB");
-//        ProductOption option2 = createOption(200L, group, "32 GB", "32GB", "32 GB");
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-//        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
-//        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)).thenReturn(List.of(option1, option2));
-//        // when
-//        List<ProductOptionDto> result = productOptionGroupService.getActiveOptions(groupId);
-//        // then
-//        assertAll(
-//                () -> assertEquals(2, result.size()),
-//                () -> assertEquals(100L, result.get(0).id()),
-//                () -> assertEquals("16 GB", result.get(0).name()),
-//                () -> assertEquals("16GB", result.get(0).code()),
-//                () -> assertEquals(200L, result.get(1).id()),
-//                () -> assertEquals("32 GB", result.get(1).name()),
-//                () -> assertEquals("32GB", result.get(1).code())
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verify(productRepository).findByIdAndActiveTrue(productId);
-//        verify(productOptionRepository).findAllByGroupIdAndActiveTrue(groupId);
-//    }
-//
-//    @Test
-//    void getActiveOptions_GroupDoesNotExist_ProductOptionGroupNotFoundExceptionThrown() {
-//        // given
-//        Long groupId = 1L;
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.empty());
-//        // when & then
-//        assertThrows(ProductOptionGroupNotFoundException.class,
-//                () -> productOptionGroupService.getActiveOptions(groupId)
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verifyNoInteractions(productRepository, productOptionRepository);
-//    }
-//
-//    @Test
-//    void getActiveOptions_ProductDoesNotExist_ProductNotFoundExceptionThrown() {
-//        // given
-//        Long groupId = 1L;
-//        Long productId = 10L;
-//        Product product = new Product();
-//        product.setId(productId);
-//        ProductOptionGroup group = new ProductOptionGroup();
-//        group.setProduct(product);
-//        when(productOptionGroupRepository.findByIdAndActiveTrue(groupId)).thenReturn(Optional.of(group));
-//        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.empty());
-//        // when & then
-//        assertThrows(ProductNotFoundException.class,
-//                () -> productOptionGroupService.getActiveOptions(groupId)
-//        );
-//        verify(productOptionGroupRepository).findByIdAndActiveTrue(groupId);
-//        verify(productRepository).findByIdAndActiveTrue(productId);
-//        verifyNoInteractions(productOptionRepository);
-//    }
 
     @Test
     void createOptionGroup_ProductExistsAndCodeIsUnique_GroupCreated() {
@@ -271,6 +212,29 @@ public class ProductOptionGroupServiceTest {
         verify(productRepository).findByIdAndActiveTrue(productId);
         verify(productOptionGroupRepository).existsByProductIdAndCode(productId, "MEMORY");
         verify(productOptionGroupRepository, never()).save(any());
+    }
+
+    @Test
+    void createOptionGroup_ElectronicsProduct_ThrowsException() {
+        Long productId = 1L;
+        Product product = createProduct(
+                productId, "Headphones", "Wireless headphones", ProductType.ELECTRONICS);
+        CreateProductOptionGroupCommand command = new CreateProductOptionGroupCommand(
+                "Color",
+                "COLOR",
+                SelectionType.SINGLE,
+                true,
+                1,
+                1
+        );
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        assertThrows(InvalidProductOptionGroupException.class,
+                () -> productOptionGroupService.createProductOptionGroup(productId, command));
+        verify(productRepository).findByIdAndActiveTrue(productId);
+        verify(productOptionGroupRepository, never())
+                .existsByProductIdAndCode(anyLong(), anyString());
+        verify(productOptionGroupRepository, never()).save(any(ProductOptionGroup.class));
     }
 
     @Test
@@ -517,6 +481,116 @@ public class ProductOptionGroupServiceTest {
                 () -> assertEquals(1, result.maxSelections())
         );
         verify(productOptionGroupRepository).existsByProductIdAndCodeAndIdNot(productId, "MEMORY", groupId);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithMinGreaterThanOne_ThrowsException() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE
+        );
+        group.setRequired(true);
+        group.setMinSelections(2);
+        group.setMaxSelections(null);
+        assertThrows(InvalidProductOptionGroupException.class,
+                group::validateConfiguration);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithMaxGreaterThanOne_ThrowsException() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setRequired(true);
+        group.setMinSelections(1);
+        group.setMaxSelections(2);
+        assertThrows(InvalidProductOptionGroupException.class,
+                group::validateConfiguration);
+    }
+
+    @Test
+    void validateConfiguration_SingleWithOneSelection_IsValid() {
+        ProductOptionGroup group = createOptionGroup(
+                1L, null, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setRequired(true);
+        group.setMinSelections(1);
+        group.setMaxSelections(1);
+        assertDoesNotThrow(group::validateConfiguration);
+    }
+
+    @Test
+    void deactivateOptionGroup_GroupExists_DeactivatesGroupAndItsActiveOptions() {
+        Long groupId = 10L;
+        Product product = createProduct(1L, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setActive(true);
+
+        ProductOption activeOption = createOption(100L, group, "16 GB", "RAM_16", "16 GB");
+        activeOption.setActive(true);
+
+        when(productOptionGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+                .thenReturn(List.of(activeOption));
+
+        productOptionGroupService.deactivateOptionGroup(groupId);
+
+        assertFalse(group.getActive());
+        assertFalse(activeOption.getActive());
+        verify(productOptionRepository).findAllByGroupIdAndActiveTrue(groupId);
+    }
+
+    @Test
+    void deactivateOptionGroup_GroupDoesNotExist_ThrowsNotFound() {
+        Long groupId = 10L;
+        when(productOptionGroupRepository.findById(groupId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductOptionGroupNotFoundException.class,
+                () -> productOptionGroupService.deactivateOptionGroup(groupId));
+
+        verifyNoInteractions(productOptionRepository);
+    }
+
+    @Test
+    void activateOptionGroup_GroupExistsAndProductIsActive_ActivatesOnlyGroup() {
+        Long groupId = 10L;
+        Long productId = 1L;
+        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        product.setActive(true);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setActive(false);
+
+        ProductOption previouslyDeactivatedOption = createOption(
+                100L, group, "16 GB", "RAM_16", "16 GB");
+        previouslyDeactivatedOption.setActive(false);
+        group.setOptions(List.of(previouslyDeactivatedOption));
+
+        when(productOptionGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
+
+        productOptionGroupService.activateOptionGroup(groupId);
+
+        assertTrue(group.getActive());
+        assertFalse(previouslyDeactivatedOption.getActive());
+        verifyNoInteractions(productOptionRepository);
+    }
+
+    @Test
+    void activateOptionGroup_ParentProductIsInactive_ThrowsNotFound() {
+        Long groupId = 10L;
+        Long productId = 1L;
+        Product product = createProduct(productId, "Laptop", "Gaming laptop", ProductType.COMPUTER);
+        ProductOptionGroup group = createOptionGroup(
+                groupId, product, "Memory", "MEMORY", SelectionType.SINGLE);
+        group.setActive(false);
+
+        when(productOptionGroupRepository.findById(groupId)).thenReturn(Optional.of(group));
+        when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.empty());
+
+        assertThrows(ProductNotFoundException.class,
+                () -> productOptionGroupService.activateOptionGroup(groupId));
+
+        assertFalse(group.getActive());
+        verifyNoInteractions(productOptionRepository);
     }
 
     private Product createProduct(Long id, String name, String description, ProductType type) {

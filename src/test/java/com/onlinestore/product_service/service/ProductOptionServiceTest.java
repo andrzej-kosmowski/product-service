@@ -95,6 +95,30 @@ class ProductOptionServiceTest {
         }
 
         @Test
+        @DisplayName("Should exclude options backed by inactive products")
+        void getActiveOptions_InactiveOptionProduct_IsNotReturned() {
+            ProductOption textOption = createTextOption();
+
+            Product activeOptionProduct = createOptionProduct(2L, "SSD 1 TB", "SSD-1TB");
+            ProductOption activeProductOption = createProductOption(activeOptionProduct);
+            activeProductOption.setId(101L);
+
+            Product inactiveOptionProduct = createOptionProduct(3L, "SSD 512 GB", "SSD-512");
+            inactiveOptionProduct.setActive(false);
+            ProductOption inactiveProductOption = createProductOption(inactiveOptionProduct);
+            inactiveProductOption.setId(102L);
+
+            when(productOptionGroupRepository.findByIdAndActiveTrue(10L)).thenReturn(Optional.of(group));
+            when(productRepository.findByIdAndActiveTrue(1L)).thenReturn(Optional.of(product));
+            when(productOptionRepository.findAllByGroupIdAndActiveTrue(10L))
+                    .thenReturn(List.of(textOption, activeProductOption, inactiveProductOption));
+
+            List<ProductOptionDto> result = productOptionService.getActiveOptions(10L);
+
+            assertEquals(List.of(100L, 101L), result.stream().map(ProductOptionDto::id).toList());
+        }
+
+        @Test
         @DisplayName("Should throw exception when group does not exist or is inactive")
         void getActiveOptions_GroupNotFound_ExceptionThrown() {
             // given

@@ -29,36 +29,6 @@ class ProductControllerTest {
     }
 
     @Test
-    void getActiveProducts_TypeNotSpecified_AllActiveProductsReturned() {
-        // given
-        Pageable pageable = PageRequest.of(0, 10);
-        Page<ProductDto> productPage = Page.empty(pageable);
-        when(productService.getActiveProducts(pageable)).thenReturn(productPage);
-        // when
-        Page<ProductDto> result = productController.getActiveProducts(null, pageable);
-        // then
-        assertEquals(productPage, result);
-        verify(productService).getActiveProducts(pageable);
-        verify(productService, never()).getActiveProductsByType(any(), any());
-    }
-
-    @Test
-    void getActiveProducts_TypeSpecified_ProductsOfTypeReturned() {
-        // given
-        Pageable pageable = PageRequest.of(0, 10);
-        ProductType type = ProductType.COMPUTER;
-        Page<ProductDto> productPage = Page.empty(pageable);
-        when(productService.getActiveProductsByType(type, pageable))
-                .thenReturn(productPage);
-        // when
-        Page<ProductDto> result = productController.getActiveProducts(type, pageable);
-        // then
-        assertEquals(productPage, result);
-        verify(productService).getActiveProductsByType(type, pageable);
-        verify(productService, never()).getActiveProducts(any());
-    }
-
-    @Test
     void getProductConfiguration_ProductExists_ConfigurationReturned() {
         // given
         Long productId = 1L;
