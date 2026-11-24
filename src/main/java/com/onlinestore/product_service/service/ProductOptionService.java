@@ -15,6 +15,7 @@ import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
 import com.onlinestore.product_service.repository.ProductOptionRepository;
 import com.onlinestore.product_service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.List;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class ProductOptionService {
     private final ProductRepository productRepository;
@@ -30,17 +32,21 @@ public class ProductOptionService {
     private final ProductOptionMapper productOptionMapper;
 
     public List<ProductOptionDto> getActiveOptions(Long groupId) {
+        log.info("Fetching active options for group with id {}", groupId);
         ProductOptionGroup group = findActiveGroupOrThrow(groupId);
         findActiveProductOrThrow(group.getProduct().getId());
-        return productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
+        List<ProductOptionDto> options = productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
                 .stream()
                 .filter(this::isAvailableOption)
                 .map(productOptionMapper::toDto)
                 .toList();
+        log.info("Fetched {} active options for group with id {}", options.size(), groupId);
+        return options;
     }
 
     @Transactional
     public ProductOptionDto createOption(Long groupId, CreateProductOptionCommand command) {
+        log.info("Creating option with code {} in group with id {}", command.code(), groupId);
         ProductOptionGroup group = findActiveGroupOrThrow(groupId);
         findActiveProductOrThrow(group.getProduct().getId());
         if (productOptionRepository.existsByGroupIdAndCode(groupId, command.code())) {
@@ -52,11 +58,13 @@ public class ProductOptionService {
         ProductOption option = productOptionMapper.from(command, group, optionProduct);
         option.initialize();
         ProductOption savedOption = productOptionRepository.save(option);
+        log.info("Created option with id {} in group with id {}", savedOption.getId(), groupId);
         return productOptionMapper.toDto(savedOption);
     }
 
     @Transactional
     public ProductOptionDto updateOption(Long optionId, UpdateProductOptionCommand command) {
+        log.info("Updating option with id {}", optionId);
         ProductOption option = productOptionRepository.findByIdAndActiveTrue(optionId)
                 .orElseThrow(() -> new ProductOptionNotFoundException(optionId));
         Long groupId = option.getGroup().getId();
@@ -75,21 +83,26 @@ public class ProductOptionService {
                 command.value(),
                 optionProduct
         );
+        log.info("Updated option with id {}", optionId);
         return productOptionMapper.toDto(option);
     }
 
     @Transactional
     public void deactivateOption(Long optionId) {
+        log.info("Deactivating option with id {}", optionId);
         ProductOption option = findProductOptionOrThrow(optionId);
         option.deactivate();
+        log.info("Deactivated option with id {}", optionId);
     }
 
     @Transactional
     public void activateOption(Long optionId) {
+        log.info("Activating option with id {}", optionId);
         ProductOption option = findProductOptionOrThrow(optionId);
         ProductOptionGroup group = findActiveGroupOrThrow(option.getGroup().getId());
         findActiveProductOrThrow(group.getProduct().getId());
         option.activate();
+        log.info("Activated option with id {}", optionId);
     }
 
     private Product findActiveProductOrThrow(Long id) {

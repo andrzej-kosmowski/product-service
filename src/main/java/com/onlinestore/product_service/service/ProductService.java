@@ -17,6 +17,7 @@ import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
 import com.onlinestore.product_service.repository.ProductOptionRepository;
 import com.onlinestore.product_service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional(readOnly = true)
 public class ProductService {
     private final ProductRepository productRepository;
@@ -38,23 +40,30 @@ public class ProductService {
     private final ProductOptionMapper productOptionMapper;
 
     public PageResponse<ProductDto> getActiveProducts(Pageable pageable) {
+        log.info("Fetching active products. Page: {}, Size: {}", pageable.getPageNumber(), pageable.getPageSize());
         Page<Product> products = productRepository.findAllByActiveTrue(pageable);
         Page<ProductDto> productDtos = products.map(productMapper::toDto);
+        log.info("Fetched {} active products", productDtos.getNumberOfElements());
         return PageResponse.from(productDtos);
     }
 
     public PageResponse<ProductDto> getActiveProductsByType(ProductType type, Pageable pageable) {
+        log.info("Fetching active products of type {}. Page: {}, Size: {}",
+                type, pageable.getPageNumber(), pageable.getPageSize());
         Page<Product> products = productRepository.findAllByTypeAndActiveTrue(type, pageable);
         Page<ProductDto> productDtos = products.map(productMapper::toDto);
+        log.info("Fetched {} active products of type {}", productDtos.getNumberOfElements(), type);
         return PageResponse.from(productDtos);
     }
 
     public ProductDto getActiveProductById(Long id) {
+        log.info("Fetching active product with id {}", id);
         Product product = findActiveProductOrThrow(id);
         return productMapper.toDto(product);
     }
 
     public ProductConfigurationDto getProductConfiguration(Long productId) {
+        log.info("Fetching configuration for product with id {}", productId);
         findActiveProductOrThrow(productId);
 
         List<ProductOptionGroup> optionGroups = productOptionGroupRepository
@@ -91,6 +100,7 @@ public class ProductService {
 
     @Transactional
     public ProductDto createProduct(CreateProductCommand command) {
+        log.info("Creating product with SKU {} and type {}", command.sku(), command.type());
         if (productRepository.existsBySku(command.sku())) {
             throw new ProductAlreadyExistsException(command.sku());
         }
@@ -103,11 +113,13 @@ public class ProductService {
                 command.type()
         );
         Product savedProduct = productRepository.save(product);
+        log.info("Created product with id {}", savedProduct.getId());
         return productMapper.toDto(savedProduct);
     }
 
     @Transactional
     public ProductDto updateProduct(Long id, UpdateProductCommand command) {
+        log.info("Updating product with id {}", id);
         Product product = findActiveProductOrThrow(id);
         if (productRepository.existsBySkuAndIdNot(command.sku(), id)) {
             throw new ProductAlreadyExistsException(command.sku());
@@ -121,19 +133,24 @@ public class ProductService {
         }
         product.update(command.sku(), command.name(),
                 command.description(), command.netPrice(), command.taxRate(), command.type());
+        log.info("Updated product with id {}", id);
         return productMapper.toDto(product);
     }
 
     @Transactional
     public void activateProduct(Long id) {
+        log.info("Activating product with id {}", id);
         Product product = findProductOrThrow(id);
         product.activate();
+        log.info("Activated product with id {}", id);
     }
 
     @Transactional
     public void deactivateProduct(Long id) {
+        log.info("Deactivating product with id {}", id);
         Product product = findProductOrThrow(id);
         product.deactivate();
+        log.info("Deactivated product with id {}", id);
     }
 
     private Product findActiveProductOrThrow(Long id) {
