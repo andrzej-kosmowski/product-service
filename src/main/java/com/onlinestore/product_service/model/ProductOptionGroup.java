@@ -67,7 +67,8 @@ public class ProductOptionGroup {
         if (maxSelections != null && maxSelections < minSelections) {
             throw new InvalidProductOptionGroupException("Maximum selections cannot be lower than minimum selections");
         }
-        if (selectionType == SelectionType.SINGLE && maxSelections != null && maxSelections > 1) {
+        if (selectionType == SelectionType.SINGLE
+                && (minSelections > 1 || (maxSelections != null && maxSelections > 1))) {
             throw new InvalidProductOptionGroupException(
                     "Single selection group cannot have more than one maximum selection");
         }
