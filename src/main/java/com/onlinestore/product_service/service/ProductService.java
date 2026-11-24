@@ -6,6 +6,7 @@ import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
 import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
+import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.mapper.ProductMapper;
@@ -91,6 +92,13 @@ public class ProductService {
         Product product = findActiveProductOrThrow(id);
         if (productRepository.existsBySkuAndIdNot(command.sku(), id)) {
             throw new ProductAlreadyExistsException(command.sku());
+        }
+        if (product.getType() != ProductType.ELECTRONICS
+                && command.type() == ProductType.ELECTRONICS
+                && productOptionGroupRepository.existsByProductIdAndActiveTrue(id)) {
+            throw new InvalidProductOptionGroupException(
+                    "A product with active option groups cannot be changed to ELECTRONICS"
+            );
         }
         product.update(command.sku(), command.name(),
                 command.description(), command.netPrice(), command.taxRate(), command.type());

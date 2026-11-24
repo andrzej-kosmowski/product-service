@@ -57,6 +57,14 @@ public class ProductOptionGroup {
         validateConfiguration();
     }
 
+    public void activate() {
+        this.active = true;
+    }
+
+    public void deactivate() {
+        this.active = false;
+    }
+
     public void validateConfiguration() {
         if (required && minSelections < 1) {
             throw new InvalidProductOptionGroupException("Required option group must have at least one minimum selection");

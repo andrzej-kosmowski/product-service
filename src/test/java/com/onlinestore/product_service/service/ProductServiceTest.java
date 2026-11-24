@@ -4,6 +4,7 @@ import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
+import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.mapper.ProductMapper;
@@ -407,6 +408,69 @@ class ProductServiceTest {
         verify(productRepository).findByIdAndActiveTrue(productId);
         verify(productRepository).existsBySkuAndIdNot(command.sku(), productId);
         verify(productRepository, never()).save(Mockito.any(Product.class));
+    }
+
+    @Test
+    void updateProduct_ProductHasActiveOptionGroups_CannotChangeTypeToElectronics() {
+        Long productId = 1L;
+        Product product = Product.create(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.COMPUTER
+        );
+        product.setId(productId);
+        UpdateProductCommand command = new UpdateProductCommand(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.ELECTRONICS
+        );
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productRepository.existsBySkuAndIdNot(command.sku(), productId))
+                .thenReturn(false);
+        when(productOptionGroupRepository.existsByProductIdAndActiveTrue(productId))
+                .thenReturn(true);
+        assertThrows(InvalidProductOptionGroupException.class,
+                () -> productService.updateProduct(productId, command));
+        assertEquals(ProductType.COMPUTER, product.getType());
+        verify(productOptionGroupRepository).existsByProductIdAndActiveTrue(productId);
+    }
+
+    @Test
+    void updateProduct_ProductHasNoActiveOptionGroups_CanChangeTypeToElectronics() {
+        Long productId = 1L;
+        Product product = Product.create(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.COMPUTER
+        );
+        product.setId(productId);
+        UpdateProductCommand command = new UpdateProductCommand(
+                "PC-001",
+                "Gaming PC",
+                "Gaming computer",
+                new BigDecimal("4000.00"),
+                new BigDecimal("23.00"),
+                ProductType.ELECTRONICS
+        );
+        when(productRepository.findByIdAndActiveTrue(productId))
+                .thenReturn(Optional.of(product));
+        when(productRepository.existsBySkuAndIdNot(command.sku(), productId))
+                .thenReturn(false);
+        when(productOptionGroupRepository.existsByProductIdAndActiveTrue(productId))
+                .thenReturn(false);
+        ProductDto result = productService.updateProduct(productId, command);
+        assertEquals(ProductType.ELECTRONICS, result.type());
+        assertEquals(ProductType.ELECTRONICS, product.getType());
     }
 
     @Test

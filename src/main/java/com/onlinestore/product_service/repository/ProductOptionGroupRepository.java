@@ -11,4 +11,5 @@ public interface ProductOptionGroupRepository extends JpaRepository<ProductOptio
     Optional<ProductOptionGroup> findByIdAndActiveTrue(Long id);
     boolean existsByProductIdAndCode(Long productId, String code);
     boolean existsByProductIdAndCodeAndIdNot(Long productId, String code, Long id);
+    boolean existsByProductIdAndActiveTrue(Long productId);
 }

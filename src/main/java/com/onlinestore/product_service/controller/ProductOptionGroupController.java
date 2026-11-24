@@ -61,4 +61,28 @@ public class ProductOptionGroupController {
         log.info("Updating option group with id: {}", groupId);
         return productOptionGroupService.updateOptionGroup(groupId, command);
     }
+
+    @Operation(summary = "Deactivate an option group and its active options")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Option group and its active options deactivated"),
+            @ApiResponse(responseCode = "404", description = "Option group not found")
+    })
+    @PatchMapping("/{groupId}/deactivate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deactivateOptionGroup(@PathVariable Long groupId) {
+        log.info("Deactivating option group with id: {}", groupId);
+        productOptionGroupService.deactivateOptionGroup(groupId);
+    }
+
+    @Operation(summary = "Activate an option group")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Option group activated"),
+            @ApiResponse(responseCode = "404", description = "Option group or parent product not found")
+    })
+    @PatchMapping("/{groupId}/activate")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void activateOptionGroup(@PathVariable Long groupId) {
+        log.info("Activating option group with id: {}", groupId);
+        productOptionGroupService.activateOptionGroup(groupId);
+    }
 }

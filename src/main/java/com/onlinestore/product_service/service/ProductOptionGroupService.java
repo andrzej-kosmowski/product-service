@@ -3,13 +3,17 @@ package com.onlinestore.product_service.service;
 import com.onlinestore.product_service.command.CreateProductOptionGroupCommand;
 import com.onlinestore.product_service.command.UpdateProductOptionGroupCommand;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
+import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
 import com.onlinestore.product_service.exception.ProductOptionGroupAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundException;
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.model.Product;
 import com.onlinestore.product_service.model.ProductOptionGroup;
+import com.onlinestore.product_service.model.ProductOption;
+import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
+import com.onlinestore.product_service.repository.ProductOptionRepository;
 import com.onlinestore.product_service.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,6 +27,7 @@ import java.util.List;
 public class ProductOptionGroupService {
     private final ProductRepository productRepository;
     private final ProductOptionGroupRepository productOptionGroupRepository;
+    private final ProductOptionRepository productOptionRepository;
     private final ProductOptionGroupMapper productOptionGroupMapper;
 
     public List<ProductOptionGroupDto> getActiveOptionGroups(Long productId) {
@@ -36,6 +41,11 @@ public class ProductOptionGroupService {
     @Transactional
     public ProductOptionGroupDto createProductOptionGroup(Long productId, CreateProductOptionGroupCommand command) {
         Product product = findActiveProductOrThrow(productId);
+        if (product.getType() == ProductType.ELECTRONICS) {
+            throw new InvalidProductOptionGroupException(
+                    "Products of type ELECTRONICS cannot have option groups"
+            );
+        }
         if (productOptionGroupRepository.existsByProductIdAndCode(productId, command.code())) {
             throw new ProductOptionGroupAlreadyExistsException(productId, command.code());
         }
@@ -59,6 +69,27 @@ public class ProductOptionGroupService {
         group.update(command.name(), command.code(), command.selectionType(), command.required(),
                 command.minSelections(), command.maxSelections());
         return productOptionGroupMapper.toDto(group);
+    }
+
+    @Transactional
+    public void deactivateOptionGroup(Long groupId) {
+        ProductOptionGroup group = findOptionGroupOrThrow(groupId);
+        group.deactivate();
+
+        productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
+                .forEach(ProductOption::deactivate);
+    }
+
+    @Transactional
+    public void activateOptionGroup(Long groupId) {
+        ProductOptionGroup group = findOptionGroupOrThrow(groupId);
+        findActiveProductOrThrow(group.getProduct().getId());
+        group.activate();
+    }
+
+    private ProductOptionGroup findOptionGroupOrThrow(Long id) {
+        return productOptionGroupRepository.findById(id)
+                .orElseThrow(() -> new ProductOptionGroupNotFoundException(id));
     }
 
     private Product findActiveProductOrThrow(Long id) {

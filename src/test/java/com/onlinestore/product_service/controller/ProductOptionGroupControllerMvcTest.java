@@ -252,4 +252,48 @@ class ProductOptionGroupControllerMvcTest {
 
         verifyNoInteractions(productOptionGroupService);
     }
+
+    @Test
+    void deactivateOptionGroup_GroupExists_NoContentReturned() throws Exception {
+        Long groupId = 10L;
+
+        mockMvc.perform(patch("/api/option-groups/{groupId}/deactivate", groupId))
+                .andExpect(status().isNoContent());
+
+        verify(productOptionGroupService).deactivateOptionGroup(groupId);
+    }
+
+    @Test
+    void deactivateOptionGroup_GroupDoesNotExist_NotFoundReturned() throws Exception {
+        Long groupId = 10L;
+        doThrow(new ProductOptionGroupNotFoundException(groupId))
+                .when(productOptionGroupService).deactivateOptionGroup(groupId);
+
+        mockMvc.perform(patch("/api/option-groups/{groupId}/deactivate", groupId))
+                .andExpect(status().isNotFound());
+
+        verify(productOptionGroupService).deactivateOptionGroup(groupId);
+    }
+
+    @Test
+    void activateOptionGroup_GroupAndParentProductExist_NoContentReturned() throws Exception {
+        Long groupId = 10L;
+
+        mockMvc.perform(patch("/api/option-groups/{groupId}/activate", groupId))
+                .andExpect(status().isNoContent());
+
+        verify(productOptionGroupService).activateOptionGroup(groupId);
+    }
+
+    @Test
+    void activateOptionGroup_ParentProductDoesNotExist_NotFoundReturned() throws Exception {
+        Long groupId = 10L;
+        doThrow(new ProductNotFoundException(1L))
+                .when(productOptionGroupService).activateOptionGroup(groupId);
+
+        mockMvc.perform(patch("/api/option-groups/{groupId}/activate", groupId))
+                .andExpect(status().isNotFound());
+
+        verify(productOptionGroupService).activateOptionGroup(groupId);
+    }
 }
