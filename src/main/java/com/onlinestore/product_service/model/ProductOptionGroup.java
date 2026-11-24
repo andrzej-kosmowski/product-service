@@ -1,5 +1,6 @@
 package com.onlinestore.product_service.model;
 
+import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -38,4 +39,37 @@ public class ProductOptionGroup {
     @OneToMany(mappedBy = "group")
     private List<ProductOption> options = new ArrayList<>();
 
+    public void update(
+            String name,
+            String code,
+            SelectionType selectionType,
+            Boolean required,
+            Integer minSelections,
+            Integer maxSelections
+    ) {
+        this.name = name;
+        this.code = code;
+        this.selectionType = selectionType;
+        this.required = required;
+        this.minSelections = minSelections;
+        this.maxSelections = maxSelections;
+
+        validateConfiguration();
+    }
+
+    public void validateConfiguration() {
+        if (required && minSelections < 1) {
+            throw new InvalidProductOptionGroupException("Required option group must have at least one minimum selection");
+        }
+        if (!required && minSelections != 0) {
+            throw new InvalidProductOptionGroupException("Optional option group must have zero minimum selections");
+        }
+        if (maxSelections != null && maxSelections < minSelections) {
+            throw new InvalidProductOptionGroupException("Maximum selections cannot be lower than minimum selections");
+        }
+        if (selectionType == SelectionType.SINGLE && maxSelections != null && maxSelections > 1) {
+            throw new InvalidProductOptionGroupException(
+                    "Single selection group cannot have more than one maximum selection");
+        }
+    }
 }

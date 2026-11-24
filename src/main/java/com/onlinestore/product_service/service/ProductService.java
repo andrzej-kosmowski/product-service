@@ -52,14 +52,6 @@ public class ProductService {
         return productMapper.toDto(product);
     }
 
-    public List<ProductOptionGroupDto> getActiveOptionGroups(Long productId) {
-        findActiveProductOrThrow(productId);
-        return productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId)
-                .stream()
-                .map(productOptionGroupMapper::toDto)
-                .toList();
-    }
-
     public ProductConfigurationDto getProductConfiguration(Long productId) {
         findActiveProductOrThrow(productId);
         List<ProductOptionGroupDto> groups = productOptionGroupRepository
@@ -75,16 +67,6 @@ public class ProductService {
                 })
                 .toList();
         return new ProductConfigurationDto(productId, groups);
-    }
-
-    public List<ProductOptionDto> getActiveOptions(Long groupId) {
-        ProductOptionGroup group = productOptionGroupRepository.findByIdAndActiveTrue(groupId)
-                .orElseThrow(() -> new ProductOptionGroupNotFoundException(groupId));
-        findActiveProductOrThrow(group.getProduct().getId());
-        return productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
-                .stream()
-                .map(productOptionMapper::toDto)
-                .toList();
     }
 
     @Transactional
