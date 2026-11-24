@@ -9,4 +9,6 @@ import java.util.Optional;
 public interface ProductOptionGroupRepository extends JpaRepository<ProductOptionGroup, Long> {
     List<ProductOptionGroup> findAllByProductIdAndActiveTrue(Long productId);
     Optional<ProductOptionGroup> findByIdAndActiveTrue(Long id);
+    boolean existsByProductIdAndCode(Long productId, String code);
+    boolean existsByProductIdAndCodeAndIdNot(Long productId, String code, Long id);
 }

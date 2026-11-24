@@ -8,12 +8,10 @@ import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.dto.ProductOptionGroupDto;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
-import com.onlinestore.product_service.exception.ProductOptionGroupNotFoundException;
 import com.onlinestore.product_service.mapper.ProductMapper;
 import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.mapper.ProductOptionMapper;
 import com.onlinestore.product_service.model.Product;
-import com.onlinestore.product_service.model.ProductOptionGroup;
 import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
 import com.onlinestore.product_service.repository.ProductOptionRepository;
@@ -52,14 +50,6 @@ public class ProductService {
         return productMapper.toDto(product);
     }
 
-    public List<ProductOptionGroupDto> getActiveOptionGroups(Long productId) {
-        findActiveProductOrThrow(productId);
-        return productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId)
-                .stream()
-                .map(productOptionGroupMapper::toDto)
-                .toList();
-    }
-
     public ProductConfigurationDto getProductConfiguration(Long productId) {
         findActiveProductOrThrow(productId);
         List<ProductOptionGroupDto> groups = productOptionGroupRepository
@@ -75,16 +65,6 @@ public class ProductService {
                 })
                 .toList();
         return new ProductConfigurationDto(productId, groups);
-    }
-
-    public List<ProductOptionDto> getActiveOptions(Long groupId) {
-        ProductOptionGroup group = productOptionGroupRepository.findByIdAndActiveTrue(groupId)
-                .orElseThrow(() -> new ProductOptionGroupNotFoundException(groupId));
-        findActiveProductOrThrow(group.getProduct().getId());
-        return productOptionRepository.findAllByGroupIdAndActiveTrue(groupId)
-                .stream()
-                .map(productOptionMapper::toDto)
-                .toList();
     }
 
     @Transactional
