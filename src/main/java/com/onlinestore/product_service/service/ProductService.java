@@ -14,6 +14,7 @@ import com.onlinestore.product_service.mapper.ProductOptionGroupMapper;
 import com.onlinestore.product_service.mapper.ProductOptionMapper;
 import com.onlinestore.product_service.model.Product;
 import com.onlinestore.product_service.model.ProductOption;
+import com.onlinestore.product_service.model.ProductOptionGroup;
 import com.onlinestore.product_service.model.ProductType;
 import com.onlinestore.product_service.repository.ProductOptionGroupRepository;
 import com.onlinestore.product_service.repository.ProductOptionRepository;
@@ -25,6 +26,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -54,21 +57,38 @@ public class ProductService {
 
     public ProductConfigurationDto getProductConfiguration(Long productId) {
         findActiveProductOrThrow(productId);
-        List<ProductOptionGroupDto> groups = productOptionGroupRepository
-                .findAllByProductIdAndActiveTrue(productId)
+
+        List<ProductOptionGroup> optionGroups = productOptionGroupRepository
+                .findAllByProductIdAndActiveTrue(productId);
+
+        if (optionGroups.isEmpty()) {
+            return new ProductConfigurationDto(productId, List.of());
+        }
+
+        List<Long> groupIds = optionGroups.stream()
+                .map(ProductOptionGroup::getId)
+                .toList();
+
+        Map<Long, List<ProductOptionDto>> optionsByGroupId = productOptionRepository
+                .findAllByGroupIdInAndActiveTrue(groupIds)
                 .stream()
-                .map(group -> {
-                    List<ProductOptionDto> options = productOptionRepository
-                            .findAllByGroupIdAndActiveTrue(group.getId())
-                            .stream()
-                            .filter(this::isAvailableOption)
-                            .map(productOptionMapper::toDto)
-                            .toList();
-                    return productOptionGroupMapper.toDtoWithOptions(group, options);
-                })
+                .filter(this::isAvailableOption)
+                .collect(Collectors.groupingBy(
+                        option -> option.getGroup().getId(),
+                        Collectors.mapping(
+                                productOptionMapper::toDto,
+                                Collectors.toList()
+                        )
+                ));
+        List<ProductOptionGroupDto> groups = optionGroups.stream()
+                .map(group -> productOptionGroupMapper.toDtoWithOptions(
+                        group,
+                        optionsByGroupId.getOrDefault(group.getId(), List.of())
+                ))
                 .toList();
         return new ProductConfigurationDto(productId, groups);
     }
+
 
     @Transactional
     public ProductDto createProduct(CreateProductCommand command) {

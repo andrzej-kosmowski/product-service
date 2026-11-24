@@ -4,6 +4,7 @@ import com.onlinestore.product_service.command.CreateProductCommand;
 import com.onlinestore.product_service.command.UpdateProductCommand;
 import com.onlinestore.product_service.dto.ProductConfigurationDto;
 import com.onlinestore.product_service.dto.ProductDto;
+import com.onlinestore.product_service.dto.ProductOptionDto;
 import com.onlinestore.product_service.exception.InvalidProductOptionGroupException;
 import com.onlinestore.product_service.exception.ProductAlreadyExistsException;
 import com.onlinestore.product_service.exception.ProductNotFoundException;
@@ -153,7 +154,7 @@ class ProductServiceTest {
                 .thenReturn(Optional.of(product));
         when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId))
                 .thenReturn(List.of(group));
-        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+        when(productOptionRepository.findAllByGroupIdInAndActiveTrue(List.of(groupId)))
                 .thenReturn(List.of(option));
         // when
         ProductConfigurationDto result =
@@ -175,7 +176,7 @@ class ProductServiceTest {
         verify(productOptionGroupRepository)
                 .findAllByProductIdAndActiveTrue(productId);
         verify(productOptionRepository)
-                .findAllByGroupIdAndActiveTrue(groupId);
+                .findAllByGroupIdInAndActiveTrue(List.of(groupId));
     }
 
     @Test
@@ -219,13 +220,13 @@ class ProductServiceTest {
 
         when(productRepository.findByIdAndActiveTrue(productId)).thenReturn(Optional.of(product));
         when(productOptionGroupRepository.findAllByProductIdAndActiveTrue(productId)).thenReturn(List.of(group));
-        when(productOptionRepository.findAllByGroupIdAndActiveTrue(groupId))
+        when(productOptionRepository.findAllByGroupIdInAndActiveTrue(List.of(groupId)))
                 .thenReturn(List.of(textOption, inactiveProductOption, activeProductOption));
 
         ProductConfigurationDto result = productService.getProductConfiguration(productId);
 
         assertEquals(List.of(100L, 102L), result.groups().getFirst().options().stream()
-                .map(option -> option.id())
+                .map(ProductOptionDto::id)
                 .toList());
     }
 
